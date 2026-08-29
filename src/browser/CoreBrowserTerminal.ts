@@ -21,7 +21,7 @@
  *   http://linux.die.net/man/7/urxvt
  */
 
-import { IDecoration, IDecorationOptions, IDisposable, ILinkProvider, IMarker } from '@xterm/xterm';
+import { IDecoration, IDecorationOptions, IDisposable, IEffectiveTheme, ILinkProvider, IMarker } from '@xterm/xterm';
 import { copyHandler, handlePasteEvent, moveTextAreaUnderMouseCursor, paste, rightClickHandler } from 'browser/Clipboard';
 import * as Strings from 'browser/LocalizableStrings';
 import { OscLinkProvider } from 'browser/OscLinkProvider';
@@ -68,6 +68,21 @@ export class CoreBrowserTerminal extends CoreTerminal implements ITerminal {
   private _viewportElement: HTMLElement | undefined;
   private _helperContainer: HTMLElement | undefined;
   private _compositionView: HTMLElement | undefined;
+
+  public get effectiveTheme(): IEffectiveTheme | undefined {
+    const colors = this._themeService?.colors;
+    if (!colors) {
+      return undefined;
+    }
+    return Object.freeze({
+      foreground: colors.foreground.css,
+      background: colors.background.css,
+      cursor: colors.cursor.css,
+      cursorAccent: colors.cursorAccent.css,
+      selectionBackground: colors.selectionBackgroundTransparent.css,
+      ansi: Object.freeze(colors.ansi.map(color => color.css))
+    });
+  }
 
   private readonly _linkifier: MutableDisposable<ILinkifier2> = this._register(new MutableDisposable());
   public get linkifier(): ILinkifier2 | undefined { return this._linkifier.value; }
@@ -217,12 +232,7 @@ export class CoreBrowserTerminal extends CoreTerminal implements ITerminal {
           this.coreService.triggerDataEvent(`${C0.ESC}]${ident};${toRgbString(colorRgb)}${C1_ESCAPED.ST}`);
           break;
         case ColorRequestType.SET:
-          if (acc === 'ansi') {
-            this._themeService.modifyColors(colors => colors.ansi[req.index] = channels.toColor(...req.color));
-          } else {
-            const narrowedAcc = acc;
-            this._themeService.modifyColors(colors => colors[narrowedAcc] = channels.toColor(...req.color));
-          }
+          this._themeService.setColor(req.index, channels.toColor(...req.color));
           break;
         case ColorRequestType.RESTORE:
           this._themeService.restoreColor(req.index);

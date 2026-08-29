@@ -21,6 +21,26 @@ test.describe('API Integration Tests', () => {
     strictEqual(await ctx.proxy.rows, 24);
   });
 
+  test('effectiveTheme follows OSC color set and reset', async () => {
+    await openTerminal(ctx);
+    await ctx.proxy.write('\x1b]4;1;#456789\x07\x1b]10;#123456\x07\x1b]11;#234567\x07\x1b]12;#345678\x07');
+    const set = await ctx.proxy.effectiveTheme;
+    deepStrictEqual({
+      foreground: set?.foreground,
+      background: set?.background,
+      cursor: set?.cursor,
+      ansi1: set?.ansi[1]
+    }, {
+      foreground: '#123456', background: '#234567', cursor: '#345678', ansi1: '#456789'
+    });
+    await ctx.proxy.write('\x1b]104;1\x07\x1b]110\x07\x1b]111\x07\x1b]112\x07');
+    const reset = await ctx.proxy.effectiveTheme;
+    notStrictEqual(reset?.foreground, '#123456');
+    notStrictEqual(reset?.background, '#234567');
+    notStrictEqual(reset?.cursor, '#345678');
+    notStrictEqual(reset?.ansi[1], '#456789');
+  });
+
   test('Proposed API check', async () => {
     await openTerminal(ctx, { allowProposedApi: false }, { loadUnicodeGraphemesAddon: false });
     await ctx.page.evaluate(`

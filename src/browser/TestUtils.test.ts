@@ -8,7 +8,7 @@ import { ICharacterJoinerService, ICharSizeService, ICoreBrowserService, IMouseS
 import { IRenderDimensions, IRenderer, IRequestRedrawEvent } from 'browser/renderer/shared/Types';
 import { IColorSet, ITerminal, ILinkifier2, IBrowser, IViewport, ICompositionHelper, CharacterJoinerHandler, IBufferRange, ReadonlyColorSet, IBufferElementProvider } from 'browser/Types';
 import { IBuffer, IBufferSet } from 'common/buffer/Types';
-import { IBufferLine, ICellData, IAttributeData, ICircularList, XtermListener, ICharset, ITerminalOptions, ColorIndex } from 'common/Types';
+import { IBufferLine, ICellData, IAttributeData, ICircularList, XtermListener, ICharset, ITerminalOptions, ColorIndex, IColor } from 'common/Types';
 import { Buffer } from 'common/buffer/Buffer';
 import * as Browser from 'common/Platform';
 import { CoreBrowserTerminal } from 'browser/CoreBrowserTerminal';
@@ -30,6 +30,7 @@ export class TestTerminal extends CoreBrowserTerminal {
 }
 
 export class MockTerminal implements ITerminal {
+  public effectiveTheme = undefined;
   public onBlur!: Event<void>;
   public onFocus!: Event<void>;
   public onA11yChar!: Event<string>;
@@ -515,7 +516,7 @@ export class MockThemeService implements IThemeService{
   public restoreColor(slot?: ColorIndex | undefined): void {
     throw new Error('Method not implemented.');
   }
-  public modifyColors(callback: (colors: IColorSet) => void): void {
+  public setColor(slot: ColorIndex, value: IColor): void {
     throw new Error('Method not implemented.');
   }
   public colors: ReadonlyColorSet = {

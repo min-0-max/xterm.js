@@ -8,6 +8,8 @@ import { assert } from 'chai';
 import { ThemeService } from 'browser/services/ThemeService';
 import { OptionsService } from 'common/services/OptionsService';
 import { DEFAULT_ANSI_COLORS } from 'browser/Types';
+import { css } from 'common/Color';
+import { SpecialColorIndex } from 'common/Types';
 
 describe('ThemeService', () => {
   let themeService: ThemeService;
@@ -294,6 +296,17 @@ describe('ThemeService', () => {
   });
 
   describe('setTheme', () => {
+    it('keeps OSC overrides across a base theme change and reset reveals the new base', () => {
+      themeService.setColor(SpecialColorIndex.FOREGROUND, css.toColor('#123456'));
+      themeService.setColor(1, css.toColor('#456789'));
+      optionsService.options.theme = { foreground: '#abcdef', red: '#fedcba' };
+      assert.equal(themeService.colors.foreground.css, '#123456');
+      assert.equal(themeService.colors.ansi[1].css, '#456789');
+      themeService.restoreColor(SpecialColorIndex.FOREGROUND);
+      themeService.restoreColor(1);
+      assert.equal(themeService.colors.foreground.css, '#abcdef');
+      assert.equal(themeService.colors.ansi[1].css, '#fedcba');
+    });
     it('should not throw when not setting all colors', () => {
       assert.doesNotThrow(() => {
         optionsService.options.theme = {};

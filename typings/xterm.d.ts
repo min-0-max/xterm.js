@@ -416,6 +416,20 @@ declare module '@xterm/xterm' {
   }
 
   /**
+   * The effective colors currently used by the renderer. Unlike
+   * {@link ITerminalOptions.theme}, this snapshot includes dynamic OSC
+   * 4/10/11/12 changes and their OSC 104/110/111/112 resets.
+   */
+  export interface IEffectiveTheme {
+    readonly foreground: string;
+    readonly background: string;
+    readonly cursor: string;
+    readonly cursorAccent: string;
+    readonly selectionBackground: string;
+    readonly ansi: ReadonlyArray<string>;
+  }
+
+  /**
    * Pty information for Windows.
    */
   export interface IWindowsPty {
@@ -861,6 +875,12 @@ declare module '@xterm/xterm' {
      * Gets the terminal modes as set by SM/DECSET.
      */
     readonly modes: IModes;
+
+    /**
+     * The renderer's effective color snapshot, or undefined before
+     * {@link Terminal.open} creates the renderer theme service.
+     */
+    readonly effectiveTheme: IEffectiveTheme | undefined;
 
     /**
      * Gets or sets the terminal options. This supports setting multiple

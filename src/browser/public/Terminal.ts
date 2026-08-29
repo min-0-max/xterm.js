@@ -12,7 +12,7 @@ import { AddonManager } from 'common/public/AddonManager';
 import { BufferNamespaceApi } from 'common/public/BufferNamespaceApi';
 import { ParserApi } from 'common/public/ParserApi';
 import { UnicodeApi } from 'common/public/UnicodeApi';
-import { IBufferNamespace as IBufferNamespaceApi, IDecoration, IDecorationOptions, IDisposable, ILinkProvider, ILocalizableStrings, IMarker, IModes, IParser, ITerminalAddon, Terminal as ITerminalApi, ITerminalInitOnlyOptions, IUnicodeHandling } from '@xterm/xterm';
+import { IBufferNamespace as IBufferNamespaceApi, IDecoration, IDecorationOptions, IDisposable, IEffectiveTheme, ILinkProvider, ILocalizableStrings, IMarker, IModes, IParser, ITerminalAddon, Terminal as ITerminalApi, ITerminalInitOnlyOptions, IUnicodeHandling } from '@xterm/xterm';
 import type { Event } from 'vs/base/common/event';
 
 /**
@@ -127,6 +127,7 @@ export class Terminal extends Disposable implements ITerminalApi {
       wraparoundMode: m.wraparound
     };
   }
+  public get effectiveTheme(): IEffectiveTheme | undefined { return this._core.effectiveTheme; }
   public get options(): Required<ITerminalOptions> {
     return this._publicOptions;
   }

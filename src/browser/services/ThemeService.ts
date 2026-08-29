@@ -37,6 +37,7 @@ export class ThemeService extends Disposable implements IThemeService {
   private _contrastCache: IColorContrastCache = new ColorContrastCache();
   private _halfContrastCache: IColorContrastCache = new ColorContrastCache();
   private _restoreColors!: IRestoreColorSet;
+  private readonly _overrides = new Map<AllColorIndex, IColor>();
 
   public get colors(): ReadonlyColorSet { return this._colors; }
 
@@ -136,6 +137,9 @@ export class ThemeService extends Disposable implements IThemeService {
     this._contrastCache.clear();
     this._halfContrastCache.clear();
     this._updateRestoreColors();
+    for (const [slot, value] of this._overrides) {
+      this._applyColor(slot, value);
+    }
     this._onChangeColors.fire(this.colors);
   }
 
@@ -148,10 +152,12 @@ export class ThemeService extends Disposable implements IThemeService {
     // unset slot restores all ansi colors
     if (slot === undefined) {
       for (let i = 0; i < this._restoreColors.ansi.length; ++i) {
+        this._overrides.delete(i);
         this._colors.ansi[i] = this._restoreColors.ansi[i];
       }
       return;
     }
+    this._overrides.delete(slot);
     switch (slot) {
       case SpecialColorIndex.FOREGROUND:
         this._colors.foreground = this._restoreColors.foreground;
@@ -167,10 +173,26 @@ export class ThemeService extends Disposable implements IThemeService {
     }
   }
 
-  public modifyColors(callback: (colors: IColorSet) => void): void {
-    callback(this._colors);
-    // Assume the change happened
+  public setColor(slot: AllColorIndex, value: IColor): void {
+    this._overrides.set(slot, value);
+    this._applyColor(slot, value);
     this._onChangeColors.fire(this.colors);
+  }
+
+  private _applyColor(slot: AllColorIndex, value: IColor): void {
+    switch (slot) {
+      case SpecialColorIndex.FOREGROUND:
+        this._colors.foreground = value;
+        break;
+      case SpecialColorIndex.BACKGROUND:
+        this._colors.background = value;
+        break;
+      case SpecialColorIndex.CURSOR:
+        this._colors.cursor = value;
+        break;
+      default:
+        this._colors.ansi[slot] = value;
+    }
   }
 
   private _updateRestoreColors(): void {

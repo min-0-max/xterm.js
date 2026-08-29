@@ -10,7 +10,7 @@ import type { IRenderService } from 'browser/services/Services';
 import type { ICoreTerminal, IDisposable, IMarker } from 'common/Types';
 import * as playwright from '@playwright/test';
 import { PageFunction } from 'playwright-core/types/structs';
-import { IBuffer, IBufferCell, IBufferLine, IBufferNamespace, IBufferRange, IDecoration, IDecorationOptions, IModes, ITerminalInitOnlyOptions, ITerminalOptions, Terminal } from '@xterm/xterm';
+import { IBuffer, IBufferCell, IBufferLine, IBufferNamespace, IBufferRange, IDecoration, IDecorationOptions, IEffectiveTheme, IModes, ITerminalInitOnlyOptions, ITerminalOptions, Terminal } from '@xterm/xterm';
 
 export interface ITestContext {
   browser: Browser;
@@ -112,7 +112,7 @@ interface ITerminalProxyCustomMethods {
   write(data: string | Uint8Array): Promise<void>;
 }
 
-type TerminalProxyAsyncPropOverrides = 'cols' | 'rows' | 'modes';
+type TerminalProxyAsyncPropOverrides = 'cols' | 'rows' | 'modes' | 'effectiveTheme';
 type TerminalProxyAsyncMethodOverrides = 'hasSelection' | 'getSelection' | 'getSelectionPosition' | 'registerMarker' | 'registerDecoration';
 type TerminalProxyCustomOverrides = 'buffer' | (
   // The below are not implemented yet
@@ -227,6 +227,9 @@ export class TerminalProxy implements ITerminalProxyCustomMethods, PlaywrightApi
   public get cols(): Promise<number> { return this.evaluate(([term]) => term.cols); }
   public get rows(): Promise<number> { return this.evaluate(([term]) => term.rows); }
   public get modes(): Promise<IModes> { return this.evaluate(([term]) => term.modes); }
+  public get effectiveTheme(): Promise<IEffectiveTheme> | Promise<undefined> {
+    return this.evaluate(([term]) => term.effectiveTheme) as Promise<IEffectiveTheme> | Promise<undefined>;
+  }
   // #endregion
 
   // #region Complex properties
