@@ -6,9 +6,20 @@
     "node": "26.7.0"
   },
   "packageManager": "npm@11.19.0",
-  "main": "lib/xterm.js",
-  "module": "lib/xterm.mjs",
-  "style": "css/xterm.css",
+  "exports": {
+    ".": {
+      "types": "./typings/xterm.d.ts",
+      "import": "./lib/xterm.mjs"
+    },
+    "./css/xterm.css": "./css/xterm.css"
+  },
+  "files": [
+    "lib",
+    "css",
+    "typings",
+    "README.md",
+    "LICENSE"
+  ],
   "types": "typings/xterm.d.ts",
   "repository": "https://github.com/xtermjs/xterm.js",
   "license": "MIT",

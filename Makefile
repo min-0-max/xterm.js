@@ -18,6 +18,7 @@ build: prepare
 	@npm run build
 
 verify: build
+	@node scripts/check-package-entry.mjs
 	@npm run lint-api
 	@npm run test-unit
 	@npm run esbuild
