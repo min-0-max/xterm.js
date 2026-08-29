@@ -1,0 +1,7 @@
+packages:
+  - "addons/*"
+
+allowBuilds:
+  esbuild: true
+  fsevents: true
+  node-pty: true
