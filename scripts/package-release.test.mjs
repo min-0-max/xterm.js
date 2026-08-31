@@ -74,3 +74,14 @@ test("the owner workflow proves, then seals, the exact package bytes", () => {
   assert.match(workflow, /publish-release[.]mjs/);
   assert.doesNotMatch(workflow, /npm publish|pnpm publish|NPM_TOKEN/);
 });
+
+test("the portable package preflight validates the effective supported host", () => {
+  const source = readFileSync(new URL("scripts/check-build-environment.sh", new URL("..", import.meta.url)), "utf8");
+  assert.match(source, /Linux-x86_64/);
+  assert.match(source, /Darwin-arm64/);
+  assert.match(source, /packageManager/);
+  assert.match(source, /node_platform.*platform/);
+  assert.match(source, /node_arch.*arch/);
+  assert.doesNotMatch(source, /actual_arch.*!= "arm64"/);
+  assert.doesNotMatch(source, /actual_platform.*!= "darwin"/);
+});

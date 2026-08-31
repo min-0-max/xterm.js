@@ -1,19 +1,38 @@
 #!/bin/sh
 set -eu
 
-required_node=26.7.0
-required_npm=11.19.0
-required_pnpm=11.22.0
+root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+[ "$#" -eq 0 ] || { echo 'BUILD_DECLARATION_INVALID: usage: check-build-environment.sh' >&2; exit 78; }
+node_expected=$(awk 'NF { value=$0; count++ } END { if (count == 1) print value; else exit 1 }' "$root/.node-version" 2>/dev/null || true)
+node_declared=$(node -e 'const v=require(process.argv[1]);process.stdout.write(v.engines?.node??"")' "$root/package.json" 2>/dev/null || true)
+npm_expected=$(node -e 'const v=require(process.argv[1]);process.stdout.write(v.engines?.npm??"")' "$root/package.json" 2>/dev/null || true)
+package_manager=$(node -e 'const v=require(process.argv[1]);process.stdout.write(v.packageManager??"")' "$root/package.json" 2>/dev/null || true)
+case "$package_manager" in pnpm@*) pnpm_expected=${package_manager#pnpm@} ;; *) pnpm_expected= ;; esac
+[ -n "$node_expected" ] && [ "$node_expected" = "$node_declared" ] && [ -n "$npm_expected" ] && [ -n "$pnpm_expected" ] || {
+  echo 'BUILD_DECLARATION_INVALID: Node, npm and pnpm owners are not exact and aligned' >&2
+  exit 78
+}
 
-actual_node="$(node -p 'process.versions.node')"
-actual_arch="$(node -p 'process.arch')"
-actual_platform="$(node -p 'process.platform')"
-actual_npm="$(npm --version)"
-actual_pnpm="$(pnpm --version)"
+case "$(uname -s)-$(uname -m)" in
+  Darwin-arm64) platform=darwin; arch=arm64 ;;
+  Darwin-x86_64) if [ "$(sysctl -n hw.optional.arm64 2>/dev/null || true)" = 1 ]; then platform=darwin; arch=arm64; else platform=darwin; arch=x64; fi ;;
+  Linux-aarch64|Linux-arm64) platform=linux; arch=arm64 ;;
+  Linux-x86_64) platform=linux; arch=x64 ;;
+  MINGW*-x86_64|MSYS*-x86_64|CYGWIN*-x86_64) platform=win32; arch=x64 ;;
+  *) echo 'TOOLCHAIN_MISMATCH: unsupported host' >&2; exit 78 ;;
+esac
 
-if [ "$actual_node" != "$required_node" ] || [ "$actual_arch" != "arm64" ] || [ "$actual_platform" != "darwin" ] || [ "$actual_npm" != "$required_npm" ] || [ "$actual_pnpm" != "$required_pnpm" ]; then
-  echo "TOOLCHAIN_MISMATCH required=node@$required_node npm@$required_npm pnpm@$required_pnpm darwin/arm64 actual=node@$actual_node npm@$actual_npm pnpm@$actual_pnpm $actual_platform/$actual_arch" >&2
+node_actual=$(node --version 2>/dev/null || true)
+node_platform=$(node -p process.platform 2>/dev/null || true)
+node_arch=$(node -p process.arch 2>/dev/null || true)
+npm_actual=$(npm --version 2>/dev/null || true)
+pnpm_actual=$(cd "$root" && pnpm --version 2>/dev/null || true)
+if [ "$node_actual" != "v$node_expected" ] || [ "$node_platform" != "$platform" ] || [ "$node_arch" != "$arch" ] || [ "$npm_actual" != "$npm_expected" ] || [ "$pnpm_actual" != "$pnpm_expected" ]; then
+  printf 'TOOLCHAIN_MISMATCH: expected node=v%s npm=%s pnpm=%s runtime=%s/%s; actual node=%s npm=%s pnpm=%s runtime=%s/%s\n' \
+    "$node_expected" "$npm_expected" "$pnpm_expected" "$platform" "$arch" \
+    "${node_actual:-missing}" "${npm_actual:-missing}" "${pnpm_actual:-missing}" "${node_platform:-unknown}" "${node_arch:-unknown}" >&2
   exit 78
 fi
-
-echo "BUILD_ENVIRONMENT_READY node=v$actual_node npm=$actual_npm pnpm=$actual_pnpm runtime=$actual_platform/$actual_arch"
+lock=$(shasum -a 256 "$root/pnpm-lock.yaml" | awk '{print $1}')
+printf 'BUILD_ENVIRONMENT_READY node=%s npm=%s pnpm=%s runtime=%s/%s lockSHA256=%s\n' \
+  "$node_actual" "$npm_actual" "$pnpm_actual" "$node_platform" "$node_arch" "$lock"
