@@ -15,4 +15,4 @@ for (const file of [root.types, root.import, manifest.exports["./css/xterm.css"]
   const info = statSync(new URL(`..${file.slice(1)}`, import.meta.url));
   if (!info.isFile() || info.size === 0) throw new Error(`package entry is not a non-empty file: ${file}`);
 }
-console.log("XTERM_PACKAGE_ENTRY_READY format=esm version=6.0.0");
+console.log(`XTERM_PACKAGE_ENTRY_READY format=esm version=${manifest.version}`);

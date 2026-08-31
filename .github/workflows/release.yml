@@ -1,30 +1,82 @@
-name: Release
+name: release
 
 on:
-  push:
-    # If a commit reaches master, assume it has passed CI via PR and publish
-    # without running tests to save time to publish
-    branches: [ "master" ]
+  workflow_dispatch:
+    inputs:
+      sdk_archive_url:
+        description: Exact immutable soksak-sdk archive URL from the release train
+        required: true
+        type: string
+      sdk_archive_sha256:
+        description: SHA-256 of the exact soksak-sdk archive
+        required: true
+        type: string
+      sdk_release_url:
+        description: Exact immutable soksak-sdk release.json URL
+        required: true
+        type: string
+      sdk_release_sha256:
+        description: SHA-256 of the exact soksak-sdk release.json
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.repository }}
+  cancel-in-progress: false
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/soksak-provider-6.0.0'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
-    - uses: actions/checkout@v3
-    - name: Use Node.js 22.x
-      uses: actions/setup-node@v3
-      with:
-        node-version: 22.x
-        cache: 'npm'
-    - name: Install dependencies
-      run: npm ci
-    - name: Build
-      run: npm run setup
-    - name: Package headless
-      run: |
-        npm run package-headless
-        node ./bin/package_headless.js
-    - name: Publish to npm
-      env:
-        NPM_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      run: node ./bin/publish.js
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86
+        with:
+          package_json_file: package.json
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Materialize the exact Component Tooling release
+        shell: bash
+        run: |
+          case "${{ inputs.sdk_archive_url }}" in
+            https://github.com/soksak-ai/soksak-sdk/releases/download/v*/soksak-sdk-*-any.tgz) ;;
+            *) echo "sdk_archive_url is not an immutable SDK release asset" >&2; exit 1 ;;
+          esac
+          case "${{ inputs.sdk_release_url }}" in
+            https://github.com/soksak-ai/soksak-sdk/releases/download/v*/release.json) ;;
+            *) echo "sdk_release_url is not an immutable SDK release document" >&2; exit 1 ;;
+          esac
+          mkdir -p "$RUNNER_TEMP/soksak-sdk"
+          curl -fsSL "${{ inputs.sdk_archive_url }}" -o "$RUNNER_TEMP/soksak-sdk.tgz"
+          curl -fsSL "${{ inputs.sdk_release_url }}" -o "$RUNNER_TEMP/soksak-sdk-release.json"
+          archive_sha="$(sha256sum "$RUNNER_TEMP/soksak-sdk.tgz" | awk '{print $1}')"
+          release_sha="$(sha256sum "$RUNNER_TEMP/soksak-sdk-release.json" | awk '{print $1}')"
+          test "$archive_sha" = "${{ inputs.sdk_archive_sha256 }}"
+          test "$release_sha" = "${{ inputs.sdk_release_sha256 }}"
+          declared_archive_sha="$(node -e 'const fs=require("fs");const r=JSON.parse(fs.readFileSync(process.argv[1]));process.stdout.write(r.artifacts[0].sha256)' "$RUNNER_TEMP/soksak-sdk-release.json")"
+          test "$declared_archive_sha" = "$archive_sha"
+          tar -xzf "$RUNNER_TEMP/soksak-sdk.tgz" -C "$RUNNER_TEMP/soksak-sdk" --strip-components=1
+          cp "$RUNNER_TEMP/soksak-sdk-release.json" "$RUNNER_TEMP/soksak-sdk/release.json"
+          test -z "$(find "$RUNNER_TEMP/soksak-sdk" -type l -print -quit)"
+          "$RUNNER_TEMP/soksak-sdk/bin/soksak-sdk" prepare
+      - name: Prove the exact owner package release
+        run: make release COMMIT="$GITHUB_SHA" OUT="$RUNNER_TEMP/release"
+      - name: Publish the immutable owner package release
+        env:
+          SOKSAK_RELEASE_TOKEN: ${{ github.token }}
+        run: |
+          test "$(gh api "repos/${{ github.repository }}/immutable-releases" --jq '.enabled and .enforced_by_owner')" = true || { echo "owner-enforced immutable releases must be enabled before tagging" >&2; exit 1; }
+          node scripts/publish-package-release.mjs \
+            --repository "${{ github.repository }}" \
+            --commit "$GITHUB_SHA" \
+            --directory "$RUNNER_TEMP/release" \
+            --publisher "$RUNNER_TEMP/soksak-sdk/.dependencies/soksak-spec/release-template/publish-release.mjs"
