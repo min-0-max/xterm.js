@@ -74,7 +74,7 @@ jobs:
         env:
           SOKSAK_RELEASE_TOKEN: ${{ github.token }}
         run: |
-          test "$(gh api "repos/${{ github.repository }}/immutable-releases" --jq '.enabled and .enforced_by_owner')" = true || { echo "owner-enforced immutable releases must be enabled before tagging" >&2; exit 1; }
+          test "$(gh api "repos/${{ github.repository }}/immutable-releases" --jq '.enabled')" = true || { echo "repository immutable releases must be enabled before tagging" >&2; exit 1; }
           node scripts/publish-package-release.mjs \
             --repository "${{ github.repository }}" \
             --commit "$GITHUB_SHA" \

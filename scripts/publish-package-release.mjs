@@ -8,6 +8,8 @@ const COMMIT_RE = /^[a-f0-9]{40}$/;
 const REPOSITORY_RE = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 
+export const repositoryImmutableSetting = (settings) => settings?.enabled === true;
+
 const regularFile = (filename, label) => {
   const info = lstatSync(filename);
   if (!info.isFile() || info.isSymbolicLink() || realpathSync(filename) !== filename) {
@@ -75,6 +77,15 @@ if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.ar
     const { GitHubApi, publishImmutableRelease } = await import(pathToFileURL(realpathSync(input.publisher)).href);
     const release = collectPackageReleaseAssets(input);
     const api = new GitHubApi({ repository: input.repository, token: process.env.SOKSAK_RELEASE_TOKEN });
+    // A user-owned repository can enable immutable releases but has no organization policy, so
+    // GitHub correctly reports enforced_by_owner=false. Publication still requires enabled=true,
+    // and the shared publisher separately confirms the finished release's immutable=true stamp,
+    // exact tag commit and every remote asset digest.
+    api.assertImmutable = async () => {
+      const settings = await api.request("GET", `${api.apiRoot}/immutable-releases`, { allow404: true });
+      if (!repositoryImmutableSetting(settings)) throw new Error("repository immutable releases must be enabled before tagging");
+      return settings;
+    };
     const result = await publishImmutableRelease({
       repository: input.repository, commit: input.commit, ...release, api,
     });

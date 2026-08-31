@@ -5,7 +5,7 @@ import { join } from "node:path";
 import test from "node:test";
 
 import { buildReleaseDocument, publishVerifiedOutput } from "./build-package-release.mjs";
-import { collectPackageReleaseAssets } from "./publish-package-release.mjs";
+import { collectPackageReleaseAssets, repositoryImmutableSetting } from "./publish-package-release.mjs";
 
 const COMMIT = "a".repeat(40);
 const REPOSITORY = "min-median-max/xterm.js";
@@ -50,6 +50,13 @@ test("publication reads only the declared owner asset set", () => {
   );
 });
 
+test("repository immutability is required even without an organization policy", () => {
+  assert.equal(repositoryImmutableSetting({ enabled: true, enforced_by_owner: false }), true);
+  assert.equal(repositoryImmutableSetting({ enabled: true, enforced_by_owner: true }), true);
+  assert.equal(repositoryImmutableSetting({ enabled: false, enforced_by_owner: false }), false);
+  assert.equal(repositoryImmutableSetting(null), false);
+});
+
 test("the owner workflow proves, then seals, the exact package bytes", () => {
   const root = new URL("..", import.meta.url);
   const makefile = readFileSync(new URL("Makefile", root), "utf8");
@@ -59,7 +66,8 @@ test("the owner workflow proves, then seals, the exact package bytes", () => {
   assert.doesNotMatch(makefile, /soksak-xterm-6[.]0[.]0[.]tgz/);
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /make release COMMIT="\$GITHUB_SHA" OUT="\$RUNNER_TEMP\/release"/);
-  assert.match(workflow, /immutable-releases.*enforced_by_owner/);
+  assert.match(workflow, /immutable-releases.*[.]enabled/);
+  assert.doesNotMatch(workflow, /enforced_by_owner/);
   assert.match(workflow, /publish-package-release[.]mjs/);
   assert.match(workflow, /publish-release[.]mjs/);
   assert.doesNotMatch(workflow, /npm publish|pnpm publish|NPM_TOKEN/);
