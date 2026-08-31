@@ -93,3 +93,13 @@ test("the clean checkout declares the Playwright type import directly", () => {
   assert.equal(manifest.devDependencies["playwright-core"], "1.37.1");
   assert.match(readFileSync(new URL("test/playwright/TestUtils.ts", root), "utf8"), /from 'playwright-core\/types\/structs'/);
 });
+
+test("the typings linter uses the declared consolidated stylistic plugin", () => {
+  const root = new URL("..", import.meta.url);
+  const manifest = JSON.parse(readFileSync(new URL("package.json", root), "utf8"));
+  const config = readFileSync(new URL(".eslintrc.json.typings", root), "utf8");
+  assert.equal(typeof manifest.devDependencies["@stylistic/eslint-plugin"], "string");
+  assert.match(config, /^\s*"@stylistic",?$/m);
+  assert.doesNotMatch(config, /"@stylistic\/ts"/);
+  for (const rule of ["indent", "semi", "quotes"]) assert.match(config, new RegExp(`"@stylistic/${rule}"`));
+});
