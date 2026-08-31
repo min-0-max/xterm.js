@@ -85,3 +85,11 @@ test("the portable package preflight validates the effective supported host", ()
   assert.doesNotMatch(source, /actual_arch.*!= "arm64"/);
   assert.doesNotMatch(source, /actual_platform.*!= "darwin"/);
 });
+
+test("the clean checkout declares the Playwright type import directly", () => {
+  const root = new URL("..", import.meta.url);
+  const manifest = JSON.parse(readFileSync(new URL("package.json", root), "utf8"));
+  assert.equal(manifest.devDependencies["@playwright/test"], "1.37.1");
+  assert.equal(manifest.devDependencies["playwright-core"], "1.37.1");
+  assert.match(readFileSync(new URL("test/playwright/TestUtils.ts", root), "utf8"), /from 'playwright-core\/types\/structs'/);
+});

@@ -98,6 +98,9 @@ importers:
       nyc:
         specifier: ^15.1.0
         version: 15.1.0(supports-color@8.1.1)
+      playwright-core:
+        specifier: 1.37.1
+        version: 1.37.1
       source-map-loader:
         specifier: ^3.0.0
         version: 3.0.2(webpack@5.110.1)
