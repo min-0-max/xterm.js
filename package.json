@@ -6,7 +6,7 @@
     "node": "26.7.0",
     "npm": "11.19.0"
   },
-  "packageManager": "pnpm@11.22.0",
+  "packageManager": "pnpm@11.24.0",
   "exports": {
     ".": {
       "types": "./typings/xterm.d.ts",
