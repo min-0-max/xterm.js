@@ -29,7 +29,7 @@ concurrency:
 
 jobs:
   release:
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/min-0-max/soksak/6.0.0'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:

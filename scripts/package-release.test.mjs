@@ -65,7 +65,7 @@ test("the owner workflow proves, then seals, the exact package bytes", () => {
   assert.match(makefile, /build-package-release[.]mjs/);
   assert.doesNotMatch(makefile, /soksak-xterm-6[.]0[.]0[.]tgz/);
   assert.match(workflow, /workflow_dispatch:/);
-  assert.match(workflow, /github[.]ref == 'refs\/heads\/main'/);
+  assert.match(workflow, /github[.]ref == 'refs\/heads\/min-0-max\/soksak\/6[.]0[.]0'/);
   assert.doesNotMatch(workflow, /refs\/heads\/soksak-provider/);
   assert.match(workflow, /make release COMMIT="\$GITHUB_SHA" OUT="\$RUNNER_TEMP\/release"/);
   assert.match(workflow, /immutable-releases.*[.]enabled/);
